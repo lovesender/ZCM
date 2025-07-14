@@ -62,4 +62,4 @@ export default function BulkEditClient({ vehicles }: BulkEditClientProps) {
       </Card>
     </PageLayout>
   )
-} 
+}
