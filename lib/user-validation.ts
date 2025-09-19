@@ -5,10 +5,9 @@ export interface ValidationResult {
   errors: string[]
 }
 
-// UserFormData 인터페이스 수정
+// UserFormData 인터페이스 - 이메일 제거
 export interface UserFormData {
   name: string
-  telegramId: string // email에서 telegramId로 변경
   phone: string
   position: string
   role: string
@@ -37,48 +36,13 @@ export function validateName(name: string): ValidationResult {
   }
 }
 
-// 이메일 검증 함수를 텔레그램 ID 검증 함수로 변경
-// validateEmail 함수를 validateTelegramId 함수로 변경
-export function validateTelegramId(
-  telegramId: string,
-  existingIds: string[] = [],
-  currentId?: string,
-): ValidationResult {
-  const errors: string[] = []
-
-  if (!telegramId.trim()) {
-    errors.push("텔레그램 ID는 필수 입력 항목입니다.")
-  } else {
-    // 텔레그램 ID 형식 검사 (@ 로 시작)
-    if (!telegramId.trim().startsWith("@")) {
-      errors.push("텔레그램 ID는 @로 시작해야 합니다.")
-    } else if (telegramId.trim().length < 5) {
-      errors.push("텔레그램 ID는 최소 5글자 이상이어야 합니다.")
-    } else if (telegramId.trim().length > 32) {
-      errors.push("텔레그램 ID는 최대 32글자까지 입력 가능합니다.")
-    } else if (!/^@[a-zA-Z0-9_]+$/.test(telegramId.trim())) {
-      errors.push("텔레그램 ID는 영문, 숫자, 밑줄(_)만 포함할 수 있습니다.")
-    } else {
-      // 중복 검사 (현재 ID 제외)
-      const filteredIds = currentId ? existingIds.filter((e) => e !== currentId) : existingIds
-
-      if (filteredIds.includes(telegramId.trim().toLowerCase())) {
-        errors.push("이미 사용 중인 텔레그램 ID입니다.")
-      }
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
 // 연락처 검증
 export function validatePhone(phone: string): ValidationResult {
   const errors: string[] = []
 
-  if (phone.trim()) {
+  if (!phone.trim()) {
+    errors.push("연락처는 필수 입력 항목입니다.")
+  } else {
     const phoneRegex = /^010-\d{4}-\d{4}$/
     if (!phoneRegex.test(phone.trim())) {
       errors.push("연락처는 010-0000-0000 형식으로 입력해주세요.")
@@ -91,7 +55,7 @@ export function validatePhone(phone: string): ValidationResult {
   }
 }
 
-// 직급 검증 함수 이름은 유지하되 메시지 변경
+// 직책 검증
 export function validatePosition(position: string): ValidationResult {
   const errors: string[] = []
 
@@ -173,19 +137,16 @@ export function validateStatus(status: string): ValidationResult {
   }
 }
 
-// validateUserForm 함수에서 email -> telegramId로 변경
+// 전체 사용자 폼 검증 - 이메일 제거
 export function validateUserForm(
   formData: UserFormData,
-  existingIds: string[],
   validBranches: string[],
   validDepartments: string[],
-  currentId?: string,
 ): ValidationResult {
   const allErrors: string[] = []
 
   // 각 필드 검증
   const nameValidation = validateName(formData.name)
-  const telegramIdValidation = validateTelegramId(formData.telegramId, existingIds, currentId) // email -> telegramId
   const phoneValidation = validatePhone(formData.phone)
   const positionValidation = validatePosition(formData.position)
   const roleValidation = validateRole(formData.role)
@@ -196,7 +157,6 @@ export function validateUserForm(
   // 모든 오류 수집
   allErrors.push(
     ...nameValidation.errors,
-    ...telegramIdValidation.errors, // emailValidation -> telegramIdValidation
     ...phoneValidation.errors,
     ...positionValidation.errors,
     ...roleValidation.errors,
@@ -211,22 +171,18 @@ export function validateUserForm(
   }
 }
 
-// validateField 함수에서 email -> telegramId로 변경
+// 개별 필드 검증 - 이메일 제거
 export function validateField(
   fieldName: keyof UserFormData,
   value: string,
   context: {
-    existingEmails?: string[]
     validBranches?: string[]
     validDepartments?: string[]
-    currentEmail?: string
   } = {},
 ): ValidationResult {
   switch (fieldName) {
     case "name":
       return validateName(value)
-    case "telegramId": // email에서 telegramId로 변경
-      return validateTelegramId(value, context.existingEmails || [], context.currentEmail)
     case "phone":
       return validatePhone(value)
     case "position":
@@ -253,10 +209,9 @@ export function sanitizeInput(input: string): string {
     .replace(/on\w+=/gi, "") // 이벤트 핸들러 제거
 }
 
-// INPUT_LIMITS 객체 수정
+// 입력 제한 설정 - 이메일 제거
 export const INPUT_LIMITS = {
   name: { min: 2, max: 20 },
-  telegramId: { min: 5, max: 32 }, // email에서 telegramId로 변경
   phone: { exact: 13 }, // 010-0000-0000
   position: { min: 0, max: 20 },
 } as const

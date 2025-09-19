@@ -5,11 +5,10 @@
 export interface User {
   id: string
   name: string
-  email: string
+  phone: string
   role: "admin" | "user" | "moderator"
   branch?: string
   department?: string
-  telegramId?: string
   isVerified: boolean
   createdAt: Date
   lastLogin?: Date
@@ -26,7 +25,7 @@ const mockUsers: User[] = [
   {
     id: "1",
     name: "관리자",
-    email: "admin@zcm.org",
+    phone: "010-1234-5678",
     role: "admin",
     branch: "요한",
     department: "총무부",
@@ -37,7 +36,7 @@ const mockUsers: User[] = [
   {
     id: "2",
     name: "사용자1",
-    email: "user1@zcm.org",
+    phone: "010-9876-5432",
     role: "user",
     branch: "베드로",
     department: "교육부",
@@ -145,23 +144,15 @@ export function getAuthToken(): string | null {
 }
 
 /**
- * Check if user is verified via Telegram
- */
-export function isTelegramVerified(): boolean {
-  const user = getCurrentUser()
-  return user?.telegramId ? true : false
-}
-
-/**
  * Mock login function (replace with actual API call)
  */
-export async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function login(phone: string, password: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // Mock authentication logic
-    const user = mockUsers.find((u) => u.email === email)
+    const user = mockUsers.find((u) => u.phone === phone)
     if (!user) {
       return { success: false, error: "사용자를 찾을 수 없습니다." }
     }

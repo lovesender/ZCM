@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Search, Eye, CheckCircle, Clock, X, FileSpreadsheet } from "lucide-react"
+import { Search, Eye, CheckCircle, Clock, X } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { BulkActionBar } from "@/components/bulk-action-bar"
 import ExcelDownload from "@/components/excel-download"
@@ -23,6 +23,7 @@ interface VehicleApplication {
   owner: string
   branch: string
   department: string
+  departmentDistrict?: string // Add this new field
   status: "승인대기" | "승인완료" | "반려"
   submittedAt: string
   phone: string
@@ -40,6 +41,7 @@ const sampleApplications: VehicleApplication[] = [
     owner: "김신청자",
     branch: "요한",
     department: "총무부",
+    departmentDistrict: "하늘부 12구역",
     status: "승인대기",
     submittedAt: "2024-01-15 14:30",
     phone: "010-1234-5678",
@@ -53,6 +55,7 @@ const sampleApplications: VehicleApplication[] = [
     owner: "이등록자",
     branch: "베드로",
     department: "행정서무부",
+    departmentDistrict: "땅부 5구역",
     status: "승인완료",
     submittedAt: "2024-01-14 10:15",
     phone: "010-2345-6789",
@@ -66,6 +69,7 @@ const sampleApplications: VehicleApplication[] = [
     owner: "박사용자",
     branch: "부산야고보",
     department: "기획부",
+    departmentDistrict: "바다부 8구역",
     status: "승인대기",
     submittedAt: "2024-01-13 16:45",
     phone: "010-3456-7890",
@@ -79,6 +83,7 @@ const sampleApplications: VehicleApplication[] = [
     owner: "최신청",
     branch: "안드레",
     department: "교육부",
+    departmentDistrict: "별부 3구역",
     status: "반려",
     submittedAt: "2024-01-12 09:20",
     phone: "010-4567-8901",
@@ -93,6 +98,7 @@ const sampleApplications: VehicleApplication[] = [
     owner: "정등록",
     branch: "다대오",
     department: "봉사교통부",
+    departmentDistrict: "구름부 15구역",
     status: "승인대기",
     submittedAt: "2024-01-11 13:10",
     phone: "010-5678-9012",
@@ -143,7 +149,7 @@ export default function ApplicationsPage() {
       title: "전체 신청",
       value: applications.length.toString(),
       icon: <Clock className="h-4 w-4 text-muted-foreground" />,
-      color: ""
+      color: "",
     },
     {
       title: "승인 대기",
@@ -289,7 +295,7 @@ export default function ApplicationsPage() {
                   <TableHead>차량번호</TableHead>
                   <TableHead>모델/연식</TableHead>
                   <TableHead>신청자</TableHead>
-                  <TableHead>지파/부서</TableHead>
+                  <TableHead>지파/부서/구역</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead>신청일시</TableHead>
                   <TableHead>작업</TableHead>
@@ -316,6 +322,9 @@ export default function ApplicationsPage() {
                       <div>
                         <div className="font-medium">{app.branch}</div>
                         <div className="text-sm text-gray-500">{app.department}</div>
+                        {app.departmentDistrict && (
+                          <div className="text-sm text-gray-600 mt-1">{app.departmentDistrict}</div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
@@ -360,6 +369,11 @@ export default function ApplicationsPage() {
                                     <p>
                                       {selectedApplication.branch} / {selectedApplication.department}
                                     </p>
+                                    {selectedApplication.departmentDistrict && (
+                                      <p className="text-sm text-gray-600 mt-1">
+                                        {selectedApplication.departmentDistrict}
+                                      </p>
+                                    )}
                                   </div>
                                   <div>
                                     <label className="text-sm font-medium text-gray-500">이메일</label>

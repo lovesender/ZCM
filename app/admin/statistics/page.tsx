@@ -1,553 +1,738 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { PageLayout } from "@/components/page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
 import {
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Area,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
   AreaChart,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
+  Area,
 } from "recharts"
-import { Download, Search, TrendingUp, TrendingDown, Users, Car, BarChart3, PieChartIcon, Activity } from "lucide-react"
+import {
+  CalendarIcon,
+  Download,
+  Filter,
+  RefreshCw,
+  TrendingUp,
+  Users,
+  Car,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  BarChart3,
+} from "lucide-react"
+import { format } from "date-fns"
+import { ko } from "date-fns/locale"
+import { BRANCHES } from "@/app/config/branches"
 
-// 지파별 상세 데이터
-const detailedBranchData = [
-  {
-    name: "요한",
-    vehicles: 45,
-    users: 12,
-    pending: 3,
-    approved: 42,
-    rejected: 0,
-    growth: 12.5,
-    lastMonthVehicles: 40,
-    departments: ["총무부", "교육부", "청년회", "장년회"],
-  },
-  {
-    name: "베드로",
-    vehicles: 38,
-    users: 10,
-    pending: 2,
-    approved: 36,
-    rejected: 0,
-    growth: 8.6,
-    lastMonthVehicles: 35,
-    departments: ["행정서무부", "전도부", "부녀회"],
-  },
-  {
-    name: "부산야고보",
-    vehicles: 52,
-    users: 15,
-    pending: 4,
-    approved: 47,
-    rejected: 1,
-    growth: 18.2,
-    lastMonthVehicles: 44,
-    departments: ["기획부", "문화부", "학생회", "찬양부"],
-  },
-  {
-    name: "안드레",
-    vehicles: 29,
-    users: 8,
-    pending: 1,
-    approved: 28,
-    rejected: 0,
-    growth: 3.6,
-    lastMonthVehicles: 28,
-    departments: ["재정부", "홍보부"],
-  },
-  {
-    name: "다대오",
-    vehicles: 41,
-    users: 11,
-    pending: 2,
-    approved: 38,
-    rejected: 1,
-    growth: 13.9,
-    lastMonthVehicles: 36,
-    departments: ["내무부", "체육부", "봉사교통부"],
-  },
-  {
-    name: "빌립",
-    vehicles: 33,
-    users: 9,
-    pending: 1,
-    approved: 32,
-    rejected: 0,
-    growth: 6.5,
-    lastMonthVehicles: 31,
-    departments: ["전도부", "해외선교부"],
-  },
-  {
-    name: "시몬",
-    vehicles: 27,
-    users: 7,
-    pending: 0,
-    approved: 27,
-    rejected: 0,
-    growth: -3.6,
-    lastMonthVehicles: 28,
-    departments: ["법무부", "감사부"],
-  },
-  {
-    name: "바돌로매",
-    vehicles: 35,
-    users: 9,
-    pending: 2,
-    approved: 33,
-    rejected: 0,
-    growth: 16.7,
-    lastMonthVehicles: 30,
-    departments: ["건설부", "사업부"],
-  },
-  {
-    name: "마태",
-    vehicles: 42,
-    users: 12,
-    pending: 3,
-    approved: 39,
-    rejected: 0,
-    growth: 10.5,
-    lastMonthVehicles: 38,
-    departments: ["정보통신부", "출판부", "유년회"],
-  },
-  {
-    name: "맛디아",
-    vehicles: 31,
-    users: 8,
-    pending: 1,
-    approved: 30,
-    rejected: 0,
-    growth: 7.0,
-    lastMonthVehicles: 29,
-    departments: ["섭외부", "국내선교부"],
-  },
-  {
-    name: "서울야고보",
-    vehicles: 48,
-    users: 13,
-    pending: 3,
-    approved: 44,
-    rejected: 1,
-    growth: 20.0,
-    lastMonthVehicles: 40,
-    departments: ["보건후생복지부", "외교정책부", "자문회"],
-  },
-  {
-    name: "도마",
-    vehicles: 39,
-    users: 10,
-    pending: 2,
-    approved: 37,
-    rejected: 0,
-    growth: 8.3,
-    lastMonthVehicles: 36,
-    departments: ["신학부", "교육부"],
-  },
-]
+// 통계 데이터 타입 정의
+interface VehicleStats {
+  totalVehicles: number
+  activeVehicles: number
+  pendingApproval: number
+  maintenanceRequired: number
+  byBranch: { branch: string; count: number; percentage: number }[]
+  byType: { type: string; count: number; percentage: number }[]
+  byStatus: { status: string; count: number; percentage: number }[]
+  monthlyRegistrations: { month: string; count: number }[]
+  dailyActivity: { date: string; registrations: number; updates: number }[]
+}
 
-// 부서별 상세 데이터
-const detailedDepartmentData = [
-  { name: "총무부", vehicles: 42, users: 8, branches: ["요한", "베드로"], growth: 15.2, color: "#8884d8" },
-  { name: "행정서무부", vehicles: 38, users: 7, branches: ["베드로", "안드레"], growth: 12.8, color: "#83a6ed" },
-  { name: "장년회", vehicles: 34, users: 12, branches: ["요한", "마태", "도마"], growth: 8.9, color: "#8dd1e1" },
-  { name: "청년회", vehicles: 30, users: 15, branches: ["요한", "부산야고보"], growth: 22.4, color: "#82ca9d" },
-  { name: "학생회", vehicles: 28, users: 18, branches: ["부산야고보", "서울야고보"], growth: 25.0, color: "#a4de6c" },
-  { name: "기획부", vehicles: 25, users: 6, branches: ["부산야고보", "다대오"], growth: 4.2, color: "#d0ed57" },
-  { name: "재정부", vehicles: 22, users: 5, branches: ["안드레", "맛디아"], growth: 10.0, color: "#ffc658" },
-  { name: "교육부", vehicles: 20, users: 9, branches: ["요한", "도마"], growth: 11.1, color: "#ff8042" },
-  { name: "전도부", vehicles: 18, users: 7, branches: ["베드로", "빌립"], growth: 5.9, color: "#0088fe" },
-  { name: "문화부", vehicles: 16, users: 8, branches: ["부산야고보", "마태"], growth: 14.3, color: "#00c49f" },
-  { name: "찬양부", vehicles: 15, users: 10, branches: ["부산야고보", "서울야고보"], growth: 7.1, color: "#ffbb28" },
-  { name: "홍보부", vehicles: 14, users: 4, branches: ["안드레", "바돌로매"], growth: 16.7, color: "#ff8042" },
-  { name: "체육부", vehicles: 12, users: 6, branches: ["다대오", "시몬"], growth: 9.1, color: "#8884d8" },
-  { name: "봉사교통부", vehicles: 10, users: 5, branches: ["다대오", "서울야고보"], growth: 25.0, color: "#83a6ed" },
-  { name: "내무부", vehicles: 9, users: 3, branches: ["다대오"], growth: -10.0, color: "#8dd1e1" },
-]
+interface UserStats {
+  totalUsers: number
+  activeUsers: number
+  pendingUsers: number
+  adminUsers: number
+  byBranch: { branch: string; count: number }[]
+  byRole: { role: string; count: number }[]
+  loginActivity: { date: string; logins: number }[]
+}
 
-// 월별 추이 데이터
-const monthlyTrendData = [
-  { month: "1월", 요한: 35, 베드로: 30, 부산야고보: 40, 안드레: 25, 다대오: 32, 빌립: 28 },
-  { month: "2월", 요한: 38, 베드로: 32, 부산야고보: 42, 안드레: 26, 다대오: 34, 빌립: 29 },
-  { month: "3월", 요한: 40, 베드로: 35, 부산야고보: 44, 안드레: 28, 다대오: 36, 빌립: 31 },
-  { month: "4월", 요한: 42, 베드로: 36, 부산야고보: 47, 안드레: 28, 다대오: 38, 빌립: 32 },
-  { month: "5월", 요한: 44, 베드로: 37, 부산야고보: 50, 안드레: 29, 다대오: 40, 빌립: 33 },
-  { month: "6월", 요한: 45, 베드로: 38, 부산야고보: 52, 안드레: 29, 다대오: 41, 빌립: 33 },
-]
+interface SystemStats {
+  totalRequests: number
+  successRate: number
+  averageResponseTime: number
+  errorRate: number
+  uptime: number
+  storageUsed: number
+  storageTotal: number
+}
+
+// 색상 팔레트
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF7C7C"]
 
 export default function StatisticsPage() {
-  const [mounted, setMounted] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("vehicles")
-  const [filterBy, setFilterBy] = useState("all")
-  const [activeTab, setActiveTab] = useState("branches")
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    to: new Date(),
+  })
+  const [selectedBranch, setSelectedBranch] = useState<string>("전체")
+  const [isLoading, setIsLoading] = useState(false)
+  const [vehicleStats, setVehicleStats] = useState<VehicleStats | null>(null)
+  const [userStats, setUserStats] = useState<UserStats | null>(null)
+  const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
+  const [activeTab, setActiveTab] = useState("overview")
+
+  // 모의 데이터 생성
+  const generateMockData = () => {
+    const mockVehicleStats: VehicleStats = {
+      totalVehicles: 1247,
+      activeVehicles: 1156,
+      pendingApproval: 45,
+      maintenanceRequired: 46,
+      byBranch: BRANCHES.map((branch, index) => ({
+        branch,
+        count: Math.floor(Math.random() * 200) + 50,
+        percentage: Math.floor(Math.random() * 20) + 5,
+      })),
+      byType: [
+        { type: "승용차", count: 687, percentage: 55.1 },
+        { type: "SUV", count: 312, percentage: 25.0 },
+        { type: "승합차", count: 156, percentage: 12.5 },
+        { type: "화물차", count: 67, percentage: 5.4 },
+        { type: "기타", count: 25, percentage: 2.0 },
+      ],
+      byStatus: [
+        { status: "활성", count: 1156, percentage: 92.7 },
+        { status: "대기", count: 45, percentage: 3.6 },
+        { status: "정비중", count: 46, percentage: 3.7 },
+      ],
+      monthlyRegistrations: Array.from({ length: 12 }, (_, i) => ({
+        month: `${i + 1}월`,
+        count: Math.floor(Math.random() * 100) + 20,
+      })),
+      dailyActivity: Array.from({ length: 30 }, (_, i) => ({
+        date: format(new Date(Date.now() - i * 24 * 60 * 60 * 1000), "MM/dd"),
+        registrations: Math.floor(Math.random() * 20) + 1,
+        updates: Math.floor(Math.random() * 50) + 5,
+      })).reverse(),
+    }
+
+    const mockUserStats: UserStats = {
+      totalUsers: 342,
+      activeUsers: 298,
+      pendingUsers: 23,
+      adminUsers: 21,
+      byBranch: BRANCHES.map((branch) => ({
+        branch,
+        count: Math.floor(Math.random() * 50) + 10,
+      })),
+      byRole: [
+        { role: "관리자", count: 21 },
+        { role: "사용자", count: 298 },
+        { role: "뷰어", count: 23 },
+      ],
+      loginActivity: Array.from({ length: 7 }, (_, i) => ({
+        date: format(new Date(Date.now() - i * 24 * 60 * 60 * 1000), "MM/dd"),
+        logins: Math.floor(Math.random() * 100) + 20,
+      })).reverse(),
+    }
+
+    const mockSystemStats: SystemStats = {
+      totalRequests: 45678,
+      successRate: 99.2,
+      averageResponseTime: 245,
+      errorRate: 0.8,
+      uptime: 99.9,
+      storageUsed: 2.4,
+      storageTotal: 10.0,
+    }
+
+    setVehicleStats(mockVehicleStats)
+    setUserStats(mockUserStats)
+    setSystemStats(mockSystemStats)
+  }
+
+  // 데이터 로드
+  const loadStatistics = async () => {
+    setIsLoading(true)
+    try {
+      // 실제 API 호출 대신 모의 데이터 사용
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      generateMockData()
+    } catch (error) {
+      console.error("통계 데이터 로드 실패:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    loadStatistics()
+  }, [dateRange, selectedBranch])
 
-  if (!mounted) {
+  // 데이터 내보내기
+  const exportData = (format: "csv" | "excel") => {
+    console.log(`${format} 형식으로 데이터 내보내기`)
+    // 실제 구현에서는 데이터를 해당 형식으로 변환하여 다운로드
+  }
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">로딩 중...</p>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center space-x-2">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+            <span>통계 데이터를 불러오는 중...</span>
+          </div>
         </div>
       </div>
     )
   }
 
-  // 필터링 및 정렬 로직
-  const filteredBranchData = detailedBranchData
-    .filter(
-      (branch) =>
-        branch.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (filterBy === "all" ||
-          (filterBy === "high-growth" && branch.growth > 10) ||
-          (filterBy === "low-growth" && branch.growth <= 10)),
-    )
-    .sort((a, b) => {
-      if (sortBy === "vehicles") return b.vehicles - a.vehicles
-      if (sortBy === "users") return b.users - a.users
-      if (sortBy === "growth") return b.growth - a.growth
-      return a.name.localeCompare(b.name)
-    })
-
-  const filteredDepartmentData = detailedDepartmentData
-    .filter(
-      (dept) =>
-        dept.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (filterBy === "all" ||
-          (filterBy === "high-growth" && dept.growth > 10) ||
-          (filterBy === "low-growth" && dept.growth <= 10)),
-    )
-    .sort((a, b) => {
-      if (sortBy === "vehicles") return b.vehicles - a.vehicles
-      if (sortBy === "users") return b.users - a.users
-      if (sortBy === "growth") return b.growth - a.growth
-      return a.name.localeCompare(b.name)
-    })
-
-  const stats = [
-    {
-      title: "총 지파 수",
-      value: "12",
-      icon: <BarChart3 className="h-4 w-4 text-blue-600" />,
-      color: "text-blue-600",
-    },
-    {
-      title: "총 부서 수",
-      value: "30",
-      icon: <PieChartIcon className="h-4 w-4 text-purple-600" />,
-      color: "text-purple-600",
-    },
-    {
-      title: "평균 성장률",
-      value: "11.2%",
-      icon: <TrendingUp className="h-4 w-4 text-green-600" />,
-      color: "text-green-600",
-    },
-    {
-      title: "활성 조직",
-      value: "42",
-      icon: <Activity className="h-4 w-4 text-orange-600" />,
-      color: "text-orange-600",
-    },
-  ]
-
-  const actions = (
-    <div className="flex gap-2">
-      <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-        <Download className="w-4 h-4" />
-        Excel 다운로드
-      </Button>
-      <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-        <Download className="w-4 h-4" />
-        PDF 다운로드
-      </Button>
-    </div>
-  )
-
-  // 브레드크럼 데이터
-  const breadcrumbs = [{ label: "홈", href: "/" }, { label: "통계" }]
-
   return (
-    <PageLayout
-      title="통계 대시보드"
-      description="차량 등록 현황 및 통계를 확인합니다"
-      breadcrumbs={breadcrumbs}
-      stats={stats}
-      actions={actions}
-    >
-      <Card className="mb-6">
+    <div className="container mx-auto p-6 space-y-6">
+      {/* 헤더 */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">통계 대시보드</h1>
+          <p className="text-gray-600 mt-1">차량 관리 시스템 통계 및 분석</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={() => loadStatistics()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            새로고침
+          </Button>
+          <Button variant="outline" onClick={() => exportData("csv")}>
+            <Download className="h-4 w-4 mr-2" />
+            CSV 내보내기
+          </Button>
+          <Button variant="outline" onClick={() => exportData("excel")}>
+            <Download className="h-4 w-4 mr-2" />
+            Excel 내보내기
+          </Button>
+        </div>
+      </div>
+
+      {/* 필터 */}
+      <Card>
         <CardHeader>
-          <CardTitle>월별 차량 등록 추이</CardTitle>
+          <CardTitle className="flex items-center">
+            <Filter className="h-5 w-5 mr-2" />
+            필터 설정
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={monthlyTrendData}
-                margin={{
-                  top: 10,
-                  right: 30,
-                  left: 0,
-                  bottom: 0,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area type="monotone" dataKey="요한" stackId="1" stroke="#8884d8" fill="#8884d8" />
-                <Area type="monotone" dataKey="베드로" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                <Area type="monotone" dataKey="부산야고보" stackId="1" stroke="#ffc658" fill="#ffc658" />
-                <Area type="monotone" dataKey="안드레" stackId="1" stroke="#ff8042" fill="#ff8042" />
-                <Area type="monotone" dataKey="다대오" stackId="1" stroke="#0088fe" fill="#0088fe" />
-                <Area type="monotone" dataKey="빌립" stackId="1" stroke="#00c49f" fill="#00c49f" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>기간 선택</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from && dateRange.to
+                      ? `${format(dateRange.from, "yyyy-MM-dd", { locale: ko })} ~ ${format(dateRange.to, "yyyy-MM-dd", { locale: ko })}`
+                      : "기간을 선택하세요"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: dateRange.from, to: dateRange.to }}
+                    onSelect={(range) => {
+                      if (range?.from && range?.to) {
+                        setDateRange({ from: range.from, to: range.to })
+                      }
+                    }}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label>지파 선택</Label>
+              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <SelectTrigger>
+                  <SelectValue placeholder="지파를 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="전체">전체</SelectItem>
+                  {BRANCHES.map((branch) => (
+                    <SelectItem key={branch} value={branch}>
+                      {branch}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>통계 유형</Label>
+              <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="overview">전체 개요</SelectItem>
+                  <SelectItem value="vehicles">차량 통계</SelectItem>
+                  <SelectItem value="users">사용자 통계</SelectItem>
+                  <SelectItem value="system">시스템 통계</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <div className="relative w-full sm:w-[300px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={filterBy} onValueChange={setFilterBy}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="필터" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체 보기</SelectItem>
-              <SelectItem value="high-growth">높은 성장률 (>10%)</SelectItem>
-              <SelectItem value="low-growth">낮은 성장률 (≤10%)</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="정렬" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="vehicles">차량 수</SelectItem>
-              <SelectItem value="users">사용자 수</SelectItem>
-              <SelectItem value="growth">성장률</SelectItem>
-              <SelectItem value="name">이름</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
+      {/* 통계 탭 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="branches" className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" />
-            지파별 통계
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            전체 개요
           </TabsTrigger>
-          <TabsTrigger value="departments" className="flex items-center gap-2">
-            <PieChartIcon className="w-4 h-4" />
-            부서별 통계
+          <TabsTrigger value="vehicles" className="flex items-center">
+            <Car className="h-4 w-4 mr-2" />
+            차량 통계
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center">
+            <Users className="h-4 w-4 mr-2" />
+            사용자 통계
+          </TabsTrigger>
+          <TabsTrigger value="system" className="flex items-center">
+            <Activity className="h-4 w-4 mr-2" />
+            시스템 통계
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="branches">
+        {/* 전체 개요 */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 차량 수</CardTitle>
+                <Car className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{vehicleStats?.totalVehicles.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-green-600 flex items-center">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    +12% 전월 대비
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">활성 차량</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{vehicleStats?.activeVehicles.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-green-600 flex items-center">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    +8% 전월 대비
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 사용자 수</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.totalUsers.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-green-600 flex items-center">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    +5% 전월 대비
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">시스템 가동률</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{systemStats?.uptime}%</div>
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-green-600 flex items-center">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    정상 운영 중
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 주요 차트 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>지파별 차량 현황</CardTitle>
+                <CardTitle>월별 차량 등록 현황</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart outerRadius={150} data={filteredBranchData.slice(0, 6)}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="name" />
-                      <PolarRadiusAxis angle={30} domain={[0, 60]} />
-                      <Radar name="차량 수" dataKey="vehicles" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                      <Radar name="사용자 수" dataKey="users" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
-                      <Legend />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={vehicleStats?.monthlyRegistrations}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0088FE" />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>지파별 상세 정보</CardTitle>
+                <CardTitle>지파별 차량 분포</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          지파
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          차량 수
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          사용자 수
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          성장률
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredBranchData.map((branch) => (
-                        <tr key={branch.name}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {branch.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <Car className="w-4 h-4 text-gray-400" />
-                              {branch.vehicles}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-gray-400" />
-                              {branch.users}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <Badge
-                              className={`flex items-center gap-1 ${
-                                branch.growth > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {branch.growth > 0 ? (
-                                <TrendingUp className="w-3 h-3" />
-                              ) : (
-                                <TrendingDown className="w-3 h-3" />
-                              )}
-                              {branch.growth > 0 ? "+" : ""}
-                              {branch.growth}%
-                            </Badge>
-                          </td>
-                        </tr>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={vehicleStats?.byBranch.slice(0, 6)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ branch, percentage }) => `${branch} ${percentage}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {vehicleStats?.byBranch.slice(0, 6).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="departments">
+        {/* 차량 통계 */}
+        <TabsContent value="vehicles" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 차량</CardTitle>
+                <Car className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{vehicleStats?.totalVehicles}</div>
+                <Progress value={100} className="mt-2" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">활성 차량</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{vehicleStats?.activeVehicles}</div>
+                <Progress
+                  value={vehicleStats ? (vehicleStats.activeVehicles / vehicleStats.totalVehicles) * 100 : 0}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">승인 대기</CardTitle>
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{vehicleStats?.pendingApproval}</div>
+                <Progress
+                  value={vehicleStats ? (vehicleStats.pendingApproval / vehicleStats.totalVehicles) * 100 : 0}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">정비 필요</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{vehicleStats?.maintenanceRequired}</div>
+                <Progress
+                  value={vehicleStats ? (vehicleStats.maintenanceRequired / vehicleStats.totalVehicles) * 100 : 0}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>부서별 차량 현황</CardTitle>
+                <CardTitle>차량 유형별 분포</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart outerRadius={150} data={filteredDepartmentData.slice(0, 6)}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="name" />
-                      <PolarRadiusAxis angle={30} domain={[0, 50]} />
-                      <Radar name="차량 수" dataKey="vehicles" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                      <Radar name="사용자 수" dataKey="users" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
-                      <Legend />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={vehicleStats?.byType}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ type, percentage }) => `${type} ${percentage}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {vehicleStats?.byType.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>부서별 상세 정보</CardTitle>
+                <CardTitle>일별 활동 현황</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          부서
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          차량 수
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          사용자 수
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          성장률
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredDepartmentData.map((dept) => (
-                        <tr key={dept.name}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{dept.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <Car className="w-4 h-4 text-gray-400" />
-                              {dept.vehicles}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-gray-400" />
-                              {dept.users}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <Badge
-                              className={`flex items-center gap-1 ${
-                                dept.growth > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {dept.growth > 0 ? (
-                                <TrendingUp className="w-3 h-3" />
-                              ) : (
-                                <TrendingDown className="w-3 h-3" />
-                              )}
-                              {dept.growth > 0 ? "+" : ""}
-                              {dept.growth}%
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={vehicleStats?.dailyActivity}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="registrations" stroke="#0088FE" name="신규 등록" />
+                    <Line type="monotone" dataKey="updates" stroke="#00C49F" name="정보 수정" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 사용자 통계 */}
+        <TabsContent value="users" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 사용자</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.totalUsers}</div>
+                <Progress value={100} className="mt-2" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">활성 사용자</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.activeUsers}</div>
+                <Progress
+                  value={userStats ? (userStats.activeUsers / userStats.totalUsers) * 100 : 0}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">승인 대기</CardTitle>
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.pendingUsers}</div>
+                <Progress
+                  value={userStats ? (userStats.pendingUsers / userStats.totalUsers) * 100 : 0}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">관리자</CardTitle>
+                <Badge variant="secondary">{userStats?.adminUsers}</Badge>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.adminUsers}</div>
+                <Progress
+                  value={userStats ? (userStats.adminUsers / userStats.totalUsers) * 100 : 0}
+                  className="mt-2"
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>역할별 사용자 분포</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={userStats?.byRole}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="role" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#00C49F" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>일별 로그인 활동</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={userStats?.loginActivity}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="logins" stroke="#FFBB28" fill="#FFBB28" fillOpacity={0.6} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* 시스템 통계 */}
+        <TabsContent value="system" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 요청 수</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{systemStats?.totalRequests.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">지난 30일</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">성공률</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{systemStats?.successRate}%</div>
+                <Progress value={systemStats?.successRate} className="mt-2" />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">평균 응답시간</CardTitle>
+                <Clock className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{systemStats?.averageResponseTime}ms</div>
+                <p className="text-xs text-muted-foreground">목표: 300ms 이하</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">오류율</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{systemStats?.errorRate}%</div>
+                <Progress value={systemStats?.errorRate} className="mt-2" />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>시스템 상태</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">시스템 가동률</span>
+                  <Badge variant="secondary">{systemStats?.uptime}%</Badge>
                 </div>
+                <Progress value={systemStats?.uptime} />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">성공률</span>
+                  <Badge variant="secondary">{systemStats?.successRate}%</Badge>
+                </div>
+                <Progress value={systemStats?.successRate} />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">응답 시간</span>
+                  <Badge variant="secondary">{systemStats?.averageResponseTime}ms</Badge>
+                </div>
+                <Progress value={systemStats ? Math.max(0, 100 - systemStats.averageResponseTime / 10) : 0} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>저장소 사용량</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">사용량</span>
+                  <span className="text-sm text-muted-foreground">
+                    {systemStats?.storageUsed}GB / {systemStats?.storageTotal}GB
+                  </span>
+                </div>
+                <Progress value={systemStats ? (systemStats.storageUsed / systemStats.storageTotal) * 100 : 0} />
+
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    저장소 사용량이{" "}
+                    {systemStats ? Math.round((systemStats.storageUsed / systemStats.storageTotal) * 100) : 0}%입니다.
+                    80% 초과 시 정리가 필요합니다.
+                  </AlertDescription>
+                </Alert>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
       </Tabs>
-    </PageLayout>
+    </div>
   )
 }

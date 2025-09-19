@@ -19,7 +19,6 @@ import { useOffline } from "@/hooks/use-offline"
 import { saveOfflineRegistration, getOfflineRegistrations } from "@/lib/offline-storage"
 import { WifiOff, Cloud } from "lucide-react"
 import { BRANCHES } from "@/app/config/branches"
-import PhotoUpload from "@/components/photo-upload"
 
 // 지역 목록
 const regions = ["본부", "광산", "북구", "담양", "장성"]
@@ -75,10 +74,10 @@ export default function RegisterForm() {
   const [formData, setFormData] = useState({
     ownerName: "",
     phoneNumber: "",
-    telegramId: "",
     branch: BRANCHES[0],
     region: regions[0],
     department: departments[0],
+    departmentDistrict: "",
     vehicleType: "승용차",
     plateNumber: "",
     model: "",
@@ -86,14 +85,12 @@ export default function RegisterForm() {
     color: "",
     purpose: "",
     agreeTerms: false,
-    photos: [] as File[], // 추가
   })
 
   const { isOnline, isOffline } = useOffline()
   const [offlineRegistrations, setOfflineRegistrations] = useState<any[]>([])
-  const [telegramIdError, setTelegramIdError] = useState<string | null>(null)
 
-  // 연락처 자동 하이픈 포맷팅 함수 수정
+  // 연락처 자동 하이픈 포맷팅 함수
   const formatPhoneNumber = (value: string) => {
     // 숫자만 추출
     const numbers = value.replace(/[^\d]/g, "")
@@ -108,7 +105,7 @@ export default function RegisterForm() {
     }
   }
 
-  // 연락처 유효성 검사 함수 수정
+  // 연락처 유효성 검사 함수
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneRegex = /^010-\d{4}-\d{4}$/
     return phoneRegex.test(phoneNumber)
@@ -138,15 +135,6 @@ export default function RegisterForm() {
     }
   }
 
-  const validateTelegramId = (telegramId: string): boolean => {
-    if (!telegramId.trim()) return true
-    const cleanId = telegramId.startsWith("@") ? telegramId.slice(1) : telegramId
-    const telegramRegex = /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/
-    if (!telegramRegex.test(cleanId)) return false
-    if (cleanId.endsWith("_")) return false
-    return true
-  }
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
 
@@ -159,23 +147,14 @@ export default function RegisterForm() {
     }
 
     setError(null)
-
-    if (name === "telegramId") {
-      if (value && !validateTelegramId(value)) {
-        setTelegramIdError("5-32자, 영문자로 시작, 영문자/숫자/언더스코어만 사용 가능")
-      } else {
-        setTelegramIdError(null)
-      }
-    }
   }
 
   const handleRadioChange = (value: string, name: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // 체크박스 변경 핸들러 - 명시적으로 boolean 타입 처리
+  // 체크박스 변경 핸들러
   const handleCheckboxChange = (checked: boolean | string) => {
-    // 명시적으로 boolean 타입으로 변환
     const isChecked = checked === true || checked === "true"
     setFormData((prev) => ({ ...prev, agreeTerms: isChecked }))
     setError(null)
@@ -183,12 +162,10 @@ export default function RegisterForm() {
 
   // 컨테이너 클릭 핸들러
   const handleContainerClick = (e: React.MouseEvent) => {
-    // 체크박스 직접 클릭은 제외
     if ((e.target as HTMLElement).closest('[role="checkbox"]')) {
       return
     }
 
-    // 체크박스 상태 토글
     const newValue = !formData.agreeTerms
     setFormData((prev) => ({ ...prev, agreeTerms: newValue }))
     setError(null)
@@ -207,10 +184,6 @@ export default function RegisterForm() {
         }
         if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
           setError("연락처 형식이 올바르지 않습니다. (010-0000-0000)")
-          return false
-        }
-        if (formData.telegramId && !validateTelegramId(formData.telegramId)) {
-          setError("텔레그램 ID 형식이 올바르지 않습니다.")
           return false
         }
         break
@@ -297,19 +270,6 @@ export default function RegisterForm() {
   }
 
   const progress = (currentStep / steps.length) * 100
-
-  const handlePlateNumberDetected = (plateNumber: string) => {
-    setFormData((prev) => ({ ...prev, plateNumber }))
-    setError(null)
-    // 성공 메시지 표시
-    setSuccess(`번호판이 자동으로 인식되었습니다: ${plateNumber}`)
-    setTimeout(() => setSuccess(null), 3000)
-  }
-
-  const handlePhotoChange = (photos: File[]) => {
-    setFormData((prev) => ({ ...prev, photos }))
-    console.log(`${photos.length}개의 사진이 업로드되었습니다.`)
-  }
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-6">
@@ -431,31 +391,10 @@ export default function RegisterForm() {
                   placeholder="010-0000-0000"
                   className="h-12 text-base"
                   autoComplete="tel"
-                  maxLength={13} // 010-0000-0000 형식의 최대 길이
+                  maxLength={13}
                   required
                 />
                 <p className="text-xs text-gray-500">숫자를 입력하면 자동으로 하이픈이 추가됩니다.</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="telegramId">텔레그램 ID</Label>
-                <Input
-                  id="telegramId"
-                  name="telegramId"
-                  type="text"
-                  value={formData.telegramId}
-                  onChange={handleChange}
-                  placeholder="@username 또는 username (5-32자)"
-                  className={`h-12 text-base ${telegramIdError ? "border-red-500" : ""}`}
-                  autoComplete="username"
-                />
-                {telegramIdError && <p className="text-sm text-red-500 mt-1">{telegramIdError}</p>}
-                <p className="text-xs text-gray-500">
-                  • 5-32자 길이
-                  <br />• 영문자로 시작
-                  <br />• 영문자, 숫자, 언더스코어(_)만 사용
-                  <br />• 언더스코어로 끝날 수 없음
-                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -513,20 +452,27 @@ export default function RegisterForm() {
                   </select>
                 </div>
               </div>
+
+              {/* 부서 및 구역 입력 필드 */}
+              <div className="space-y-2">
+                <Label htmlFor="departmentDistrict" className="text-sm text-gray-700">
+                  해당 부서 및 구역을 입력해 주세요
+                </Label>
+                <Input
+                  id="departmentDistrict"
+                  name="departmentDistrict"
+                  value={formData.departmentDistrict}
+                  onChange={handleChange}
+                  placeholder="하늘부 12구역"
+                  className="h-12 text-base"
+                />
+              </div>
             </div>
           )}
 
           {/* 2단계: 차량 정보 */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              {/* 사진 업로드 섹션 추가 */}
-              <PhotoUpload
-                onPlateNumberDetected={handlePlateNumberDetected}
-                onPhotoChange={handlePhotoChange}
-                maxFiles={3}
-                isMobile={isMobile}
-              />
-
               <div className="space-y-3">
                 <Label>차량 유형 *</Label>
                 <RadioGroup
@@ -621,7 +567,7 @@ export default function RegisterForm() {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-3">개인정보 수집 및 이용 약관</h4>
                 <div className="text-sm text-gray-600 space-y-2 max-h-40 overflow-y-auto">
-                  <p>1. 수집하는 개인정보 항목: 이름, 연락처, 이메일, 소속 정보, 차량 정보</p>
+                  <p>1. 수집하는 개인정보 항목: 이름, 연락처, 소속 정보, 차량 정보</p>
                   <p>2. 개인정보 수집 및 이용 목적: 차량 등록 및 관리, 연락 및 공지사항 전달</p>
                   <p>3. 개인정보 보유 및 이용 기간: 차량 등록 해제 시까지</p>
                   <p>4. 개인정보 제공 거부 권리: 개인정보 제공을 거부할 수 있으나, 서비스 이용이 제한될 수 있습니다.</p>
@@ -682,6 +628,12 @@ export default function RegisterForm() {
                       {formData.branch} {formData.region} {formData.department}
                     </span>
                   </div>
+                  {formData.departmentDistrict && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">부서 및 구역:</span>
+                      <span className="font-medium">{formData.departmentDistrict}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600">차량:</span>
                     <span className="font-medium">
@@ -702,7 +654,7 @@ export default function RegisterForm() {
           variant="outline"
           onClick={prevStep}
           disabled={currentStep === 1}
-          className="flex-1 h-12 text-base"
+          className="flex-1 h-12 text-base bg-transparent"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />
           이전

@@ -7,7 +7,6 @@ import { useEffect, useState } from "react"
 import {
   Car,
   Users,
-  FileText,
   Settings,
   HelpCircle,
   Calendar,
@@ -52,11 +51,6 @@ const menuItems: MenuItem[] = [
     icon: Calendar,
     label: "성도 차량",
     href: "/admin/bulk-edit",
-  },
-  {
-    icon: FileText,
-    label: "교회 차량",
-    href: "/admin/vehicles",
   },
   {
     icon: Users,

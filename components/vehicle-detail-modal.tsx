@@ -1,20 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {
-  X,
-  Car,
-  User,
-  Phone,
-  MapPin,
-  Calendar,
-  Clock,
-  FileText,
-  Edit,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-} from "lucide-react"
+import { X, Car, User, Phone, MapPin, Calendar, Clock, FileText, Edit, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import Link from "next/link"
 
 interface Vehicle {
@@ -27,6 +14,7 @@ interface Vehicle {
   branch: string
   church: string
   department: string
+  departmentDistrict?: string  // Add this new field
   status: "승인됨" | "대기중" | "반려됨"
   registeredAt: string
   approvedAt?: string
@@ -184,6 +172,9 @@ export default function VehicleDetailModal({ vehicle, isOpen, onClose }: Vehicle
                     <div>
                       <p className="text-sm text-gray-600">부서</p>
                       <p className="font-medium text-gray-900">{vehicle.department}</p>
+                      {vehicle.departmentDistrict && (
+                        <p className="text-sm text-gray-600">{vehicle.departmentDistrict}</p>
+                      )}
                     </div>
                   </div>
                 </div>

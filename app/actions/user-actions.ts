@@ -2,18 +2,17 @@
 
 import { BRANCHES } from "@/app/config/branches"
 
-// User 인터페이스 수정
+// User 인터페이스 - 이메일 제거
 export interface User {
   id: number
   name: string
-  telegramId: string // email에서 telegramId로 변경
+  phone: string
   role: "관리자" | "사용자" | "뷰어"
   branch: string
   department: string
   status: "활성" | "비활성" | "대기"
   lastLogin: string
   createdAt: string
-  phone: string
   position: string
 }
 
@@ -49,30 +48,30 @@ const departments = [
   "청년회",
 ]
 
-// addUser 함수 매개변수 수정
+// addUser 함수 - 이메일 제거
 export async function addUser(userData: {
   name: string
-  telegramId: string // email에서 telegramId로 변경
+  phone: string
   role: User["role"]
   branch: string
   department: string
   position: string
-  phone: string
 }): Promise<{ success: boolean; message: string; user?: User }> {
   try {
     // 유효성 검사
-    if (!userData.name || !userData.telegramId || !userData.branch || !userData.department) {
+    if (!userData.name || !userData.phone || !userData.branch || !userData.department) {
       return {
         success: false,
         message: "필수 항목을 모두 입력해주세요.",
       }
     }
 
-    // 텔레그램 ID 형식 검사
-    if (!userData.telegramId.startsWith("@") || !/^@[a-zA-Z0-9_]+$/.test(userData.telegramId)) {
+    // 연락처 형식 검사
+    const phoneRegex = /^010-\d{4}-\d{4}$/
+    if (!phoneRegex.test(userData.phone)) {
       return {
         success: false,
-        message: "올바른 텔레그램 ID 형식을 입력해주세요.",
+        message: "연락처는 010-0000-0000 형식으로 입력해주세요.",
       }
     }
 
@@ -89,17 +88,6 @@ export async function addUser(userData: {
       return {
         success: false,
         message: "유효하지 않은 부서입니다.",
-      }
-    }
-
-    // 연락처 형식 검사 (선택사항)
-    if (userData.phone) {
-      const phoneRegex = /^010-\d{4}-\d{4}$/
-      if (!phoneRegex.test(userData.phone)) {
-        return {
-          success: false,
-          message: "연락처는 010-0000-0000 형식으로 입력해주세요.",
-        }
       }
     }
 
